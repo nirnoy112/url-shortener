@@ -18,6 +18,7 @@ This is a web application prototype for URLs shortener built using Laravel and V
 -   Go to project directory and install required dependencies.
 
     cd url-shortener
+
     composer install
 
 -   Create .env file, appliacation key and set database credentials in the .env file.
@@ -33,6 +34,7 @@ This is a web application prototype for URLs shortener built using Laravel and V
 -   Run NPM commands for VueJS installation.
 
     npm install
+
     npm run dev
 
 -   Finally, run the application on the server.
