@@ -5266,6 +5266,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash */ "./node_modules/lodash/lodash.js");
+/* harmony import */ var lodash__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash__WEBPACK_IMPORTED_MODULE_0__);
 //
 //
 //
@@ -5315,13 +5317,18 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
   data: function data() {
     return {
       url: null,
       shortenedUrl: null,
       loading: false,
-      notValidUrl: false
+      notValidUrl: false,
+      notSafeForBrowsing: false
     };
   },
   mounted: function mounted() {
@@ -5332,17 +5339,40 @@ __webpack_require__.r(__webpack_exports__);
       var self = this;
       self.shortenedUrl = null;
       self.notValidUrl = false;
+      self.notSafeForBrowsing = false;
 
       if (this.isValidURL(self.url)) {
-        self.loading = true;
-        axios.post("/shorten", {
-          url: self.url
-        }).then(function (response) {
-          self.shortenedUrl = response.data;
+        var requestObject = {
+          client: {
+            clientId: "nasid0112",
+            clientVersion: "1.5.2"
+          },
+          threatInfo: {
+            threatTypes: ["MALWARE", "SOCIAL_ENGINEERING"],
+            platformTypes: ["ANY_PLATFORM"],
+            threatEntryTypes: ["URL"],
+            threatEntries: [{
+              url: self.url
+            }]
+          }
+        };
+        axios.post("https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyDzC4F-fc74kL8qCrAmynETprqdoVdg0xc", requestObject).then(function (response) {
+          if (lodash__WEBPACK_IMPORTED_MODULE_0___default().isEmpty(response.data)) {
+            self.loading = true;
+            axios.post("/shorten", {
+              url: self.url
+            }).then(function (response) {
+              self.shortenedUrl = response.data;
+            })["catch"](function (error) {
+              console.log(error);
+            })["finally"](function () {
+              self.loading = false;
+            });
+          } else {
+            self.notSafeForBrowsing = true;
+          }
         })["catch"](function (error) {
           console.log(error);
-        })["finally"](function () {
-          self.loading = false;
         });
       } else {
         self.notValidUrl = true;
@@ -5355,6 +5385,32 @@ __webpack_require__.r(__webpack_exports__);
     isValidURL: function isValidURL(string) {
       var result = string.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
       return result !== null;
+    },
+    isSafeForBrowsing: function isSafeForBrowsing(url) {
+      var requestObject = {
+        client: {
+          clientId: "nasid0112",
+          clientVersion: "1.5.2"
+        },
+        threatInfo: {
+          threatTypes: ["MALWARE", "SOCIAL_ENGINEERING"],
+          platformTypes: ["ANY_PLATFORM"],
+          threatEntryTypes: ["URL"],
+          threatEntries: [{
+            url: url
+          }]
+        }
+      };
+      axios.post("https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyDzC4F-fc74kL8qCrAmynETprqdoVdg0xc", requestObject).then(function (response) {
+        //console.log(_.isEmpty(response.data));
+        if (lodash__WEBPACK_IMPORTED_MODULE_0___default().isEmpty(response.data)) {
+          return true;
+        } else {
+          return false;
+        }
+      })["catch"](function (error) {
+        console.log(error);
+      });
     }
   }
 });
@@ -10478,7 +10534,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n.btn[data-v-34cecb4e] {\n    background: #074e81;\n    color: white;\n}\n.btn-copy[data-v-34cecb4e] {\n    background: #2a2b2c;\n    color: white;\n}\n.control-label[data-v-34cecb4e] {\n    padding: 8px 30px 0px 0px;\n    font-weight: bold;\n}\n.error[data-v-34cecb4e] {\n    color: red;\n    font-weight: bold;\n    text-align: center;\n    border: 1px solid red;\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n.btn[data-v-34cecb4e] {\n    background: #074e81;\n    color: white;\n}\n.btn-copy[data-v-34cecb4e] {\n    background: #2a2b2c;\n    color: white;\n}\n.control-label[data-v-34cecb4e] {\n    padding: 8px 30px 0px 0px;\n    font-weight: bold;\n}\n.error[data-v-34cecb4e] {\n    color: red;\n    font-size: 18px;\n    font-weight: 500;\n    text-align: center;\n    border: 1px solid red;\n}\n.warning[data-v-34cecb4e] {\n    color: rgba(219, 91, 16, 0.932);\n    font-size: 18px;\n    font-weight: 500;\n    text-align: center;\n    border: 1px solid rgba(219, 91, 16, 0.932);\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
@@ -28448,7 +28504,15 @@ var render = function () {
         _vm.notValidUrl
           ? _c("p", { staticClass: "error" }, [
               _vm._v(
-                "\n                The URL you've entered is not Valid!\n            "
+                "\n                The URL you've entered is not valid!\n            "
+              ),
+            ])
+          : _vm._e(),
+        _vm._v(" "),
+        _vm.notSafeForBrowsing
+          ? _c("p", { staticClass: "warning" }, [
+              _vm._v(
+                "\n                The URL you've entered is not safe for browsing!\n            "
               ),
             ])
           : _vm._e(),

@@ -19,7 +19,10 @@
                 </form>
                 <br />
                 <p v-if="notValidUrl" class="error">
-                    The URL you've entered is not Valid!
+                    The URL you've entered is not valid!
+                </p>
+                <p v-if="notSafeForBrowsing" class="warning">
+                    The URL you've entered is not safe for browsing!
                 </p>
             </div>
             <div v-if="loading" class="col-md-8">
@@ -48,6 +51,7 @@
 </template>
 
 <script>
+import _ from "lodash";
 export default {
     data() {
         return {
@@ -55,6 +59,7 @@ export default {
             shortenedUrl: null,
             loading: false,
             notValidUrl: false,
+            notSafeForBrowsing: false,
         };
     },
 
@@ -65,20 +70,54 @@ export default {
     methods: {
         shortenUrl() {
             let self = this;
+
             self.shortenedUrl = null;
             self.notValidUrl = false;
+            self.notSafeForBrowsing = false;
+
             if (this.isValidURL(self.url)) {
-                self.loading = true;
+                const requestObject = {
+                    client: {
+                        clientId: "nasid0112",
+                        clientVersion: "1.5.2",
+                    },
+                    threatInfo: {
+                        threatTypes: ["MALWARE", "SOCIAL_ENGINEERING"],
+                        platformTypes: ["ANY_PLATFORM"],
+                        threatEntryTypes: ["URL"],
+                        threatEntries: [
+                            {
+                                url: self.url,
+                            },
+                        ],
+                    },
+                };
+
                 axios
-                    .post("/shorten", { url: self.url })
+                    .post(
+                        "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyDzC4F-fc74kL8qCrAmynETprqdoVdg0xc",
+                        requestObject
+                    )
                     .then((response) => {
-                        self.shortenedUrl = response.data;
+                        if (_.isEmpty(response.data)) {
+                            self.loading = true;
+                            axios
+                                .post("/shorten", { url: self.url })
+                                .then((response) => {
+                                    self.shortenedUrl = response.data;
+                                })
+                                .catch((error) => {
+                                    console.log(error);
+                                })
+                                .finally(() => {
+                                    self.loading = false;
+                                });
+                        } else {
+                            self.notSafeForBrowsing = true;
+                        }
                     })
                     .catch((error) => {
                         console.log(error);
-                    })
-                    .finally(() => {
-                        self.loading = false;
                     });
             } else {
                 self.notValidUrl = true;
@@ -93,6 +132,40 @@ export default {
                 /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g
             );
             return result !== null;
+        },
+        isSafeForBrowsing(url) {
+            const requestObject = {
+                client: {
+                    clientId: "nasid0112",
+                    clientVersion: "1.5.2",
+                },
+                threatInfo: {
+                    threatTypes: ["MALWARE", "SOCIAL_ENGINEERING"],
+                    platformTypes: ["ANY_PLATFORM"],
+                    threatEntryTypes: ["URL"],
+                    threatEntries: [
+                        {
+                            url: url,
+                        },
+                    ],
+                },
+            };
+            axios
+                .post(
+                    "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyDzC4F-fc74kL8qCrAmynETprqdoVdg0xc",
+                    requestObject
+                )
+                .then((response) => {
+                    //console.log(_.isEmpty(response.data));
+                    if (_.isEmpty(response.data)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
         },
     },
 };
@@ -113,8 +186,16 @@ export default {
 }
 .error {
     color: red;
-    font-weight: bold;
+    font-size: 18px;
+    font-weight: 500;
     text-align: center;
     border: 1px solid red;
+}
+.warning {
+    color: rgba(219, 91, 16, 0.932);
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid rgba(219, 91, 16, 0.932);
 }
 </style>
